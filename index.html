@@ -1,0 +1,899 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Jarvis — songmaosoftware.LLC</title>
+<meta name="theme-color" content="#09090b">
+<meta name="description" content="코딩 특화 AI 어시스턴트 Jarvis">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/dompurify@3.1.6/dist/purify.min.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+<style>
+:root{--bg-main:#09090b;--bg-panel:rgba(24,24,27,.75);--bg-msg-ai:rgba(39,39,42,.6);--bg-msg-user:linear-gradient(135deg,#f97316,#ea580c);--border:rgba(255,255,255,.08);--text-main:#f4f4f5;--text-muted:#a1a1aa;--accent:#f97316;--accent-glow:rgba(249,115,22,.35);--ctl:rgba(39,39,42,.9);--modal:#18181b;--shell:rgba(9,9,11,.6)}
+:root[data-theme=light]{--bg-main:#fafafa;--bg-panel:rgba(255,255,255,.85);--bg-msg-ai:#f4f4f5;--border:rgba(0,0,0,.12);--text-main:#18181b;--text-muted:#71717a;--ctl:#fff;--modal:#fff;--shell:rgba(255,255,255,.5)}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{font-family:'Pretendard',-apple-system,BlinkMacSystemFont,system-ui,sans-serif;background:var(--bg-main) radial-gradient(circle at 15% 15%,rgba(249,115,22,.08),transparent 35%),radial-gradient(circle at 85% 85%,rgba(59,130,246,.08),transparent 35%);color:var(--text-main);height:100dvh;display:flex;justify-content:center;overflow:hidden}
+.app-container{width:100%;max-width:900px;height:100%;display:flex;flex-direction:column;border-inline:1px solid var(--border);background:var(--shell)}
+header{padding:12px 20px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;background:var(--bg-panel);gap:10px}
+.brand{display:flex;align-items:center;gap:10px;min-width:0}
+.brand-text{display:flex;flex-direction:column;gap:1px;min-width:0}
+.brand-title{font-weight:700;font-size:1rem;letter-spacing:-.02em;white-space:nowrap}
+.brand-subtitle{font-size:.68rem;color:var(--text-muted);white-space:nowrap}
+.status-dot{width:9px;height:9px;border-radius:50%;background:#f59e0b;box-shadow:0 0 10px #f59e0b;flex-shrink:0;transition:background .3s,box-shadow .3s}
+.status-dot.ok{background:#22c55e;box-shadow:0 0 10px #22c55e}
+.header-controls{display:flex;gap:6px;align-items:center;min-width:0}
+select,.icon-btn{background:var(--ctl);color:var(--text-main);border:1px solid var(--border);padding:8px 10px;border-radius:10px;font-size:.85rem;cursor:pointer;outline:none;font-family:inherit;transition:border-color .2s,box-shadow .2s}
+select{max-width:150px;min-width:0}
+select:hover,.icon-btn:hover,select:focus-visible,.icon-btn:focus-visible,button:focus-visible{border-color:var(--accent);box-shadow:0 0 12px var(--accent-glow)}
+#chat-box{flex:1;min-height:0;overflow-y:auto;overscroll-behavior:contain;padding:24px;display:flex;flex-direction:column;gap:18px}
+#chat-box::-webkit-scrollbar{width:6px}#chat-box::-webkit-scrollbar-thumb{background:#52525b55;border-radius:10px}
+.notice{align-self:center;max-width:90%;text-align:center;font-size:.82rem;color:var(--text-muted);border:1px dashed var(--border);border-radius:12px;padding:10px 14px;line-height:1.6}
+.message-wrapper{display:flex;flex-direction:column;max-width:84%;min-width:0}
+.message-wrapper.user{align-self:flex-end;align-items:flex-end}
+.message-wrapper.ai{align-self:flex-start;align-items:flex-start}
+.sender-label{font-size:.72rem;color:var(--text-muted);margin-bottom:5px;padding:0 4px}
+.bubble{padding:14px 18px;border-radius:18px;font-size:.95rem;line-height:1.6;word-break:break-word;position:relative;max-width:100%}
+.user .bubble{background:var(--bg-msg-user);color:#fff;border-bottom-right-radius:4px;box-shadow:0 8px 20px -6px var(--accent-glow)}
+.ai .bubble{background:var(--bg-msg-ai);border:1px solid var(--border);border-bottom-left-radius:4px}
+.ai.err .bubble{border-color:#ef4444}
+.bubble p{margin-bottom:8px}.bubble p:last-child{margin-bottom:0}
+.bubble pre{background:#141417!important;color:#e4e4e7;padding:12px;border-radius:10px;overflow-x:auto;margin:10px 0;border:1px solid var(--border);position:relative}
+.bubble code{font-family:'JetBrains Mono','SF Mono',Menlo,monospace;font-size:.85rem}
+.bubble :not(pre)>code{background:rgba(127,127,127,.18);padding:1px 5px;border-radius:4px}
+.bubble ul,.bubble ol{padding-left:20px;margin-bottom:8px}
+.bubble h1,.bubble h2,.bubble h3{margin:12px 0 6px}
+.bubble blockquote{border-left:3px solid var(--accent);padding-left:10px;color:var(--text-muted);margin:8px 0}
+.bubble table{border-collapse:collapse;margin:8px 0;display:block;overflow-x:auto;max-width:100%}
+.bubble th,.bubble td{border:1px solid var(--border);padding:6px 10px}
+.bubble a{color:var(--accent)}
+.copy-code{position:absolute;top:6px;right:6px;font-size:.72rem;padding:3px 8px;border-radius:6px;border:1px solid var(--border);background:#27272a;color:#e4e4e7;cursor:pointer;font-family:inherit}
+.actions{display:none;gap:6px;margin-top:6px}
+.ai.done .actions{display:flex}
+.act{font-size:.74rem;padding:3px 9px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--text-muted);cursor:pointer;font-family:inherit}
+.act:hover{color:var(--accent);border-color:var(--accent)}
+.regen{display:none}.ai.done:last-child .regen{display:inline-block}
+.typing-dots{display:inline-flex;gap:5px;padding:6px 4px}
+.typing-dots span{width:7px;height:7px;background:var(--accent);border-radius:50%;animation:bounce 1.4s infinite ease-in-out both}
+.typing-dots span:nth-child(1){animation-delay:-.32s}.typing-dots span:nth-child(2){animation-delay:-.16s}
+@keyframes bounce{0%,80%,100%{transform:scale(0);opacity:.3}40%{transform:scale(1);opacity:1}}
+.retry-btn,.btn-primary{background:var(--accent);color:#fff;border:none;padding:8px 16px;border-radius:10px;cursor:pointer;font-weight:600;font-family:inherit;font-size:.85rem}
+.retry-btn{margin-top:10px}.retry-btn:hover,.btn-primary:hover{background:#ea580c}
+.input-area{padding:14px 20px 20px;background:var(--bg-panel);border-top:1px solid var(--border)}
+.input-box{display:flex;gap:10px;background:var(--ctl);border:1px solid var(--border);border-radius:16px;padding:8px 12px;align-items:flex-end;transition:border-color .25s,box-shadow .25s}
+.input-box:focus-within{border-color:var(--accent);box-shadow:0 0 20px var(--accent-glow)}
+textarea{flex:1;background:transparent;border:none;color:var(--text-main);font-size:.95rem;resize:none;max-height:150px;padding:6px 4px;outline:none;font-family:inherit;line-height:1.5}
+#send-btn{background:var(--accent);color:#fff;border:none;width:38px;height:38px;border-radius:12px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:transform .2s}
+#send-btn:hover{transform:scale(1.08)}#send-btn.stop{background:#ef4444}
+.modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.7);display:none;align-items:center;justify-content:center;z-index:100;padding:20px}
+.modal-backdrop.active{display:flex}
+.modal{background:var(--modal);border:1px solid var(--border);padding:26px;border-radius:20px;width:100%;max-width:440px;max-height:90dvh;overflow-y:auto;box-shadow:0 25px 50px -12px rgba(0,0,0,.7)}
+.modal h2{font-size:1.15rem;margin-bottom:8px}
+.modal p,.modal label{font-size:.83rem;color:var(--text-muted);line-height:1.5;display:block;margin-bottom:6px}
+.modal p{margin-bottom:14px}.modal a{color:var(--accent)}
+.modal input[type=password],.modal input[type=number],.modal textarea{width:100%;padding:10px 12px;border-radius:10px;border:1px solid var(--border);background:var(--bg-main);color:var(--text-main);margin-bottom:14px;outline:none;font-family:inherit;font-size:.9rem}
+.modal textarea{height:90px;max-height:none}
+.modal input[type=range]{width:100%;margin-bottom:14px;accent-color:var(--accent)}
+.modal input:focus,.modal textarea:focus{border-color:var(--accent)}
+.err-text{color:#ef4444!important;min-height:1em}
+.modal-actions{display:flex;justify-content:flex-end;gap:10px}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+@media(max-width:640px){header{padding:10px 12px}#chat-box{padding:14px}.input-area{padding:10px 12px 14px}.brand-subtitle{display:none}select,.icon-btn{padding:7px 8px;font-size:.78rem}select{max-width:110px}.message-wrapper{max-width:92%}}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+
+/* ===== v2 UI ===== */
+:root{--r:14px;--r-lg:20px;--ease:cubic-bezier(.16,1,.3,1);--spring:cubic-bezier(.34,1.56,.64,1)}
+.bg{position:fixed;inset:0;z-index:-1;overflow:hidden;pointer-events:none}
+.bg i{position:absolute;width:46vmax;height:46vmax;border-radius:50%;filter:blur(90px);opacity:.28;animation:drift 22s ease-in-out infinite alternate}
+.bg i:nth-child(1){background:#f97316;top:-15%;left:-10%}
+.bg i:nth-child(2){background:#3b82f6;bottom:-20%;right:-10%;animation-delay:-7s}
+.bg i:nth-child(3){background:#a855f7;top:35%;left:40%;opacity:.16;animation-delay:-13s}
+:root[data-theme=light] .bg i{opacity:.14}
+@keyframes drift{to{transform:translate(8vmax,-6vmax) scale(1.2)}}
+.app-container{position:relative;backdrop-filter:blur(24px)}
+header{animation:dropIn .7s var(--ease) both}
+.input-area{animation:riseIn .7s var(--ease) .15s both}
+@keyframes dropIn{from{transform:translateY(-100%);opacity:0}}
+@keyframes riseIn{from{transform:translateY(100%);opacity:0}}
+.brand-title{background:linear-gradient(90deg,var(--text-main) 40%,var(--accent),var(--text-main) 60%);background-size:200% 100%;-webkit-background-clip:text;background-clip:text;color:transparent;animation:shine 6s linear infinite}
+@keyframes shine{to{background-position:-200% 0}}
+.status-dot{position:relative}
+.status-dot::after{content:'';position:absolute;inset:0;border-radius:50%;background:inherit;animation:ping 2s infinite}
+@keyframes ping{to{transform:scale(3);opacity:0}}
+.icon-btn,.tool-btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;transition:transform .25s var(--spring),border-color .2s,box-shadow .2s,color .2s}
+.icon-btn:hover,.tool-btn:hover{transform:translateY(-2px)}
+.icon-btn:active,.tool-btn:active{transform:scale(.92)}
+.header-controls .icon-btn{width:38px;height:38px;padding:0;border-radius:var(--r)}
+.tool-btn{width:38px;height:38px;border-radius:12px;border:none;background:transparent;color:var(--text-muted);cursor:pointer;flex-shrink:0}
+.tool-btn:hover{color:var(--accent)}
+.tool-btn.live{color:#fff;background:#ef4444;animation:rec 1.2s infinite}
+@keyframes rec{0%{box-shadow:0 0 0 0 rgba(239,68,68,.6)}100%{box-shadow:0 0 0 14px rgba(239,68,68,0)}}
+.input-box{position:relative;overflow:hidden;isolation:isolate;border-radius:var(--r-lg);align-items:center}
+.input-box::before{content:'';position:absolute;inset:-80%;z-index:-2;background:conic-gradient(from 0deg,transparent,var(--accent),#3b82f6,transparent 60%);opacity:0;transition:opacity .4s;animation:spin 3s linear infinite}
+.input-box::after{content:'';position:absolute;inset:1.5px;border-radius:calc(var(--r-lg) - 1.5px);background:var(--ctl);z-index:-1}
+.input-box:focus-within::before{opacity:1}
+.input-box:focus-within{box-shadow:0 0 28px var(--accent-glow)}
+@keyframes spin{to{transform:rotate(360deg)}}
+#send-btn{box-shadow:0 6px 18px -4px var(--accent-glow);transition:transform .25s var(--spring),background .2s}
+.message-wrapper{animation:pop .5s var(--spring) both}
+.message-wrapper.user{transform-origin:right bottom}.message-wrapper.ai{transform-origin:left bottom}
+@keyframes pop{from{opacity:0;transform:translateY(18px) scale(.94)}}
+.bubble{border-radius:var(--r-lg)}
+.bubble.streaming>:last-child:not(.typing-dots)::after{content:'';display:inline-block;width:8px;height:1em;background:var(--accent);margin-left:3px;vertical-align:-2px;border-radius:2px;animation:blink 1s steps(2) infinite}
+@keyframes blink{50%{opacity:0}}
+.act{display:inline-flex;align-items:center;gap:4px;transition:transform .2s var(--spring),color .2s,border-color .2s}
+.act:active{transform:scale(.88)}
+.hero{margin:auto;text-align:center;max-width:520px;display:flex;flex-direction:column;align-items:center;gap:12px;padding:10px}
+.orb{width:84px;height:84px;border-radius:50%;background:radial-gradient(circle at 30% 30%,#fdba74,#f97316 45%,#7c2d12);box-shadow:0 0 60px var(--accent-glow);animation:float 4s ease-in-out infinite;position:relative;margin-bottom:10px}
+.orb::after{content:'';position:absolute;inset:-14px;border-radius:50%;border:1px solid var(--accent);opacity:.5;animation:ring 3s ease-out infinite}
+@keyframes float{50%{transform:translateY(-12px)}}
+@keyframes ring{to{transform:scale(1.5);opacity:0}}
+.hero h1{font-size:1.5rem;letter-spacing:-.03em;animation:rise .8s var(--ease) .2s both}
+.hero p{color:var(--text-muted);font-size:.9rem;animation:rise .8s var(--ease) .3s both}
+.chips{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-top:6px}
+.chip{background:var(--ctl);color:var(--text-main);border:1px solid var(--border);border-radius:999px;padding:8px 14px;font-size:.82rem;cursor:pointer;font-family:inherit;animation:rise .7s var(--ease) both;animation-delay:calc(.4s + var(--i)*.08s);transition:transform .25s var(--spring),border-color .2s,box-shadow .2s}
+.chip:hover{transform:translateY(-3px);border-color:var(--accent);box-shadow:0 6px 18px -6px var(--accent-glow)}
+@keyframes rise{from{opacity:0;transform:translateY(14px)}}
+.attach-strip{display:none;gap:8px;margin-bottom:10px;flex-wrap:wrap}
+.attach-strip.on{display:flex}
+.att{position:relative;width:60px;height:60px;border-radius:12px;overflow:hidden;border:1px solid var(--border);animation:pop .4s var(--spring) both}
+.att img{width:100%;height:100%;object-fit:cover}
+.att button{position:absolute;top:2px;right:2px;width:20px;height:20px;border-radius:50%;border:none;background:rgba(0,0,0,.7);color:#fff;cursor:pointer;font-size:.8rem;line-height:1}
+.thumb{display:block;max-width:220px;max-height:180px;border-radius:12px;margin-bottom:8px}
+.app-container.drag::after{content:'이미지를 여기에 놓으세요';position:absolute;inset:12px;border:2px dashed var(--accent);border-radius:var(--r-lg);background:rgba(9,9,11,.75);color:#fff;display:grid;place-items:center;font-weight:600;z-index:50;animation:fade .2s}
+.toast{position:fixed;left:50%;bottom:96px;transform:translateX(-50%);background:var(--modal);color:var(--text-main);border:1px solid var(--accent);padding:10px 16px;border-radius:999px;font-size:.85rem;z-index:200;animation:toastIn .45s var(--spring);box-shadow:0 10px 30px -8px var(--accent-glow);max-width:90vw}
+.toast.out{opacity:0;transition:opacity .4s}
+@keyframes toastIn{from{opacity:0;transform:translate(-50%,20px) scale(.9)}}
+.modal-backdrop.active{animation:fade .25s}
+.modal-backdrop.active .modal{animation:modalIn .45s var(--spring)}
+@keyframes fade{from{opacity:0}}
+@keyframes modalIn{from{opacity:0;transform:translateY(24px) scale(.92)}}
+.set-tools,.g-row{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px}
+.modal input[type=text]{width:100%;padding:10px 12px;border-radius:10px;border:1px solid var(--border);background:var(--bg-main);color:var(--text-main);margin-bottom:12px;outline:none;font-family:inherit;font-size:.9rem}
+
+/* ===== v3: 라이트 모드 양옆 색 불일치 수정 + 브라우징 ===== */
+:root{color-scheme:dark}:root[data-theme=light]{color-scheme:light}
+body{background:radial-gradient(circle at 15% 15%,rgba(249,115,22,.08),transparent 35%),radial-gradient(circle at 85% 85%,rgba(59,130,246,.08),transparent 35%),var(--bg-main)}
+.app-container{background:transparent;backdrop-filter:none;-webkit-backdrop-filter:none}
+.tool-btn.on{color:var(--accent);background:rgba(249,115,22,.15);box-shadow:0 0 14px var(--accent-glow)}
+.bw{align-items:center}
+.bstat{font-style:normal;font-size:.82rem;color:var(--text-muted);margin-left:8px;animation:blink 1.6s ease-in-out infinite}
+.sources{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:8px;font-size:.74rem;color:var(--text-muted);animation:rise .5s var(--ease) both}
+.src{display:inline-block;max-width:100%;padding:3px 10px;border:1px solid var(--border);border-radius:999px;color:var(--text-main);text-decoration:none;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;transition:transform .2s var(--spring),border-color .2s,color .2s}
+.src:hover{transform:translateY(-2px);border-color:var(--accent);color:var(--accent)}
+</style>
+</head>
+<body>
+<div class="bg" aria-hidden="true"><i></i><i></i><i></i></div>
+<div class="app-container">
+  <header>
+    <div class="brand">
+      <div class="status-dot" id="status-dot" title="API 키 미설정"></div>
+      <div class="brand-text"><div class="brand-title">Jarvis</div><div class="brand-subtitle">songmaosoftware.LLC</div></div>
+    </div>
+    <div class="header-controls">
+      <select id="model-select" aria-label="모델 선택">
+        <option value="llama-3.3-70b-versatile">Llama 3.3 70B</option>
+        <option value="openai/gpt-oss-120b">GPT-OSS 120B</option>
+        <option value="llama-3.1-8b-instant">Llama 3.1 8B (초고속)</option>
+        <option value="qwen/qwen3-32b">Qwen 3 32B</option>
+      </select>
+      <button class="icon-btn" id="integ-btn" type="button" data-ic="link" title="연동" aria-label="연동"></button>
+      <button class="icon-btn" id="settings-btn" type="button" data-ic="sliders" title="설정" aria-label="설정"></button>
+      <button class="icon-btn" id="key-btn" type="button" data-ic="key" title="API 키 설정" aria-label="API 키 설정"></button>
+    </div>
+  </header>
+  <div id="chat-box" role="log" aria-live="off" aria-label="채팅 기록"></div>
+  <div class="sr" id="sr-status" role="status" aria-live="polite"></div>
+  <div class="input-area">
+    <div id="attach-strip" class="attach-strip"></div>
+    <div class="input-box">
+      <button class="tool-btn" id="attach-btn" type="button" data-ic="image" title="이미지 첨부" aria-label="이미지 첨부"></button>
+      <textarea id="user-input" rows="1" placeholder="메시지를 입력하세요... (Shift+Enter 줄바꿈)" aria-label="메시지 입력"></textarea>
+      <button class="tool-btn" id="web-btn" type="button" data-ic="globe" title="웹 브라우징" aria-label="웹 브라우징" aria-pressed="false"></button>
+      <button class="tool-btn" id="mic-btn" type="button" data-ic="mic" title="음성 입력" aria-label="음성 입력"></button>
+      <button id="send-btn" type="button" aria-label="전송"></button>
+      <input type="file" id="file-input" accept="image/*" multiple hidden>
+    </div>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="key-modal" role="dialog" aria-modal="true" aria-labelledby="key-title">
+  <div class="modal">
+    <h2 id="key-title">Groq API 키 설정</h2>
+    <p>키는 이 브라우저(localStorage)에 저장되며, 요청은 Groq API로만 전송됩니다. 공용 PC에서는 사용 후 키를 지우세요.<br><a href="https://console.groq.com/keys" target="_blank" rel="noopener noreferrer">console.groq.com/keys</a>에서 발급할 수 있습니다.</p>
+    <input type="password" id="api-key-input" placeholder="gsk_..." autocomplete="off" spellcheck="false" aria-label="Groq API 키" />
+    <p class="err-text" id="key-err"></p>
+    <div class="modal-actions">
+      <button class="icon-btn" id="close-key" type="button">취소</button>
+      <button class="btn-primary" id="save-key" type="button">저장</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="set-modal" role="dialog" aria-modal="true" aria-labelledby="set-title">
+  <div class="modal">
+    <h2 id="set-title">설정</h2>
+    <label for="temp-input">Temperature: <b id="temp-val"></b></label>
+    <input type="range" id="temp-input" min="0" max="1.5" step="0.1" />
+    <label for="max-input">최대 응답 토큰</label>
+    <input type="number" id="max-input" min="256" max="32768" step="256" />
+    <label for="extra-input">추가 시스템 프롬프트 (선택)</label>
+    <textarea id="extra-input" placeholder="예: 항상 TypeScript로 답해줘"></textarea>
+    <div class="set-tools">
+      <button class="icon-btn" id="theme-btn" type="button">테마 전환</button>
+      <button class="icon-btn" id="export-btn" type="button">대화 내보내기</button>
+      <button class="icon-btn" id="clear-btn" type="button">대화 초기화</button>
+      <button class="icon-btn" id="install-btn" type="button" hidden>앱 설치</button>
+    </div>
+    <div class="modal-actions">
+      <button class="icon-btn" id="close-set" type="button">취소</button>
+      <button class="btn-primary" id="save-set" type="button">저장</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="integ-modal" role="dialog" aria-modal="true" aria-labelledby="integ-title">
+  <div class="modal">
+    <h2 id="integ-title">연동</h2>
+    <p>답변 아래의 <b>메일</b> 버튼(Gmail 작성 창)과 <b>공유</b> 버튼(카카오톡·Slack 등 설치된 앱)은 설정 없이 바로 쓸 수 있습니다. 아래는 Gmail 계정을 직접 연결하는 선택 기능입니다.</p>
+    <label for="gcid">Google OAuth Client ID (웹 애플리케이션)</label>
+    <input type="text" id="gcid" placeholder="xxxx.apps.googleusercontent.com" autocomplete="off" spellcheck="false">
+    <div class="g-row">
+      <button class="icon-btn" id="g-connect" type="button">Gmail 연결</button>
+      <button class="icon-btn" id="g-mails" type="button">최근 메일 5통 불러오기</button>
+      <button class="icon-btn" id="g-off" type="button">연결 해제</button>
+    </div>
+    <p id="g-status">연결 안 됨</p>
+    <p>Google Cloud Console에서 Gmail API를 켜고, OAuth 웹 클라이언트의 승인된 JavaScript 원본에 이 앱의 https 주소를 등록해야 합니다. 연결하면 답변을 Gmail 임시보관함에 저장할 수 있고, 불러온 메일 내용은 질문과 함께 Groq로 전송됩니다.</p>
+    <div class="modal-actions"><button class="btn-primary" id="close-integ" type="button">닫기</button></div>
+  </div>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+const hasMarked = typeof marked !== 'undefined', hasPurify = typeof DOMPurify !== 'undefined', hasHljs = typeof hljs !== 'undefined';
+const store = {
+  get(k, d) { try { const v = localStorage.getItem(k); return v === null ? d : v; } catch { return d; } },
+  set(k, v) { try { localStorage.setItem(k, v); } catch {} }
+};
+const SEND_ICON = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>';
+const STOP_ICON = '<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><rect x="5" y="5" width="14" height="14" rx="2"/></svg>';
+const MAX_HISTORY = 40;
+
+const chatBox = $('chat-box'), userInput = $('user-input'), sendBtn = $('send-btn'), modelSelect = $('model-select'), statusDot = $('status-dot');
+
+let apiKey = store.get('groq_api_key', '');
+let settings = { temp: 0.7, max: 4096, extra: '' };
+try { Object.assign(settings, JSON.parse(store.get('jarvis_settings', '{}'))); } catch {}
+let messages = [];            // {role, content, model?}
+try { messages = JSON.parse(store.get('jarvis_chat', '[]')); if (!Array.isArray(messages)) messages = []; } catch { messages = []; }
+let controller = null, streaming = false, gen = 0;
+
+// ===== 유틸 =====
+const esc = t => { const d = document.createElement('div'); d.textContent = t; return d.innerHTML; };
+const modelLabel = () => modelSelect.options[modelSelect.selectedIndex]?.text || modelSelect.value;
+const nearBottom = () => chatBox.scrollHeight - chatBox.scrollTop - chatBox.clientHeight < 80;
+const save = () => store.set('jarvis_chat', JSON.stringify(messages.map(({ images, ...m }) => images ? { ...m, content: m.content + '\n\n(이미지 ' + images.length + '장 첨부)' } : m)));
+const say = t => { $('sr-status').textContent = t; };
+
+if (hasPurify) {
+  DOMPurify.addHook('afterSanitizeAttributes', n => {
+    if (n.tagName === 'A') { n.setAttribute('target', '_blank'); n.setAttribute('rel', 'noopener noreferrer'); }
+  });
+}
+
+function md(text) {
+  text = text.replace(/<think>[\s\S]*?(<\/think>|$)/g, '');   // Qwen 등 추론 태그 방어
+  if (!hasMarked || !hasPurify) return esc(text).replace(/\n/g, '<br>');
+  if ((text.match(/```/g) || []).length % 2 === 1) text += '\n```';
+  return DOMPurify.sanitize(marked.parse(text), { ADD_ATTR: ['target'] });
+}
+
+function copy(text, btn) {
+  const old = btn.textContent;
+  navigator.clipboard?.writeText(text).then(() => {
+    btn.textContent = '복사됨 ✓'; setTimeout(() => (btn.textContent = old), 1200);
+  }).catch(() => {});
+}
+
+// 스트리밍 완료 후: 코드 하이라이트 + 코드 복사 버튼
+function finish(bubble) {
+  bubble.querySelectorAll('pre').forEach(pre => {
+    const code = pre.querySelector('code');
+    if (code && hasHljs) { try { hljs.highlightElement(code); } catch {} }
+    const b = document.createElement('button');
+    b.type = 'button'; b.className = 'copy-code'; b.textContent = '복사';
+    b.onclick = () => copy((code || pre).innerText, b);
+    pre.appendChild(b);
+  });
+}
+
+function notice() {
+  const n = document.createElement('div');
+  n.className = 'hero';
+  n.innerHTML = '<div class="orb"></div><h1>무엇을 만들어 볼까요?</h1><p>' + (apiKey ? '코드 작성, 디버깅, 이미지 분석까지 물어보세요.' : '우측 상단 키 버튼으로 Groq API 키를 입력하면 시작할 수 있어요.') + '</p><div class="chips"></div>';
+  ['이 코드의 버그를 찾아줘', '정규식을 쉽게 설명해줘', '파이썬으로 CSV 정리 스크립트 짜줘', '리팩토링 체크리스트 알려줘'].forEach((t, i) => {
+    const c = document.createElement('button');
+    c.type = 'button'; c.className = 'chip'; c.style.setProperty('--i', i); c.textContent = t;
+    c.onclick = () => { userInput.value = t; sendMessage(); };
+    n.querySelector('.chips').appendChild(c);
+  });
+  return n;
+}
+
+function addMsg(role, content = '', typing = false, label, images, sources) {
+  chatBox.querySelector('.hero')?.remove();
+  const w = document.createElement('div');
+  w.className = 'message-wrapper ' + role;
+  w._raw = content;
+  const l = document.createElement('div');
+  l.className = 'sender-label';
+  l.textContent = role === 'user' ? 'YOU' : (label || modelLabel());
+  const b = document.createElement('div');
+  b.className = 'bubble';
+  if (typing) b.innerHTML = '<div class="typing-dots"><span></span><span></span><span></span></div>';
+  else if (role === 'user') b.innerHTML = (images || []).map(u => '<img class="thumb" alt="첨부 이미지" src="' + u + '">').join('') + esc(content).replace(/\n/g, '<br>');
+  else { b.innerHTML = md(content); finish(b); }
+  w.append(l, b);
+  if (role === 'ai') {
+    const a = document.createElement('div');
+    a.className = 'actions';
+    const c = document.createElement('button');
+    c.type = 'button'; c.className = 'act'; c.textContent = '복사';
+    c.onclick = () => copy(w._raw, c);
+    const r = document.createElement('button');
+    r.type = 'button'; r.className = 'act regen'; r.textContent = '다시 생성';
+    r.onclick = regenerate;
+    const mk = (n, t, fn) => { const x = document.createElement('button'); x.type = 'button'; x.className = 'act'; x.title = t; x.setAttribute('aria-label', t); x.innerHTML = ic(n, 14); x.onclick = fn; return x; };
+    a.append(c, mk('speaker', '읽어주기', () => speak(w._raw)), mk('mail', 'Gmail로 보내기', () => toGmail(w._raw)), mk('share', '공유', () => shareText(w._raw)), r);
+    w.appendChild(a);
+    if (!typing) w.classList.add('done');
+  }
+  chatBox.appendChild(w);
+  if (sources && sources.length) showSources(w, sources);
+  chatBox.scrollTop = chatBox.scrollHeight;
+  return { w, b };
+}
+
+function renderAll() {
+  chatBox.innerHTML = '';
+  if (!messages.length) chatBox.appendChild(notice());
+  messages.forEach(m => addMsg(m.role === 'user' ? 'user' : 'ai', m.content, false, m.model, undefined, m.sources));
+  chatBox.scrollTop = chatBox.scrollHeight;
+}
+
+function trimHistory() {
+  if (messages.length > MAX_HISTORY) messages = messages.slice(-MAX_HISTORY);
+  while (messages.length && messages[0].role !== 'user') messages.shift();   // user부터 시작하도록 보정
+}
+
+function setStreaming(v) {
+  streaming = v;
+  sendBtn.innerHTML = v ? STOP_ICON : SEND_ICON;
+  sendBtn.classList.toggle('stop', v);
+  sendBtn.setAttribute('aria-label', v ? '생성 중지' : '전송');
+}
+
+function updateStatus() {
+  statusDot.classList.toggle('ok', !!apiKey);
+  statusDot.title = apiKey ? 'API 키 설정됨' : 'API 키 미설정';
+}
+
+// ===== 모달 (포커스 복귀 + 포커스 트랩) =====
+let lastFocus = null;
+function openM(m, first) {
+  lastFocus = document.activeElement;
+  m.classList.add('active');
+  (first || m.querySelector('input,textarea,button')).focus();
+}
+function closeM(m) {
+  m.classList.remove('active');
+  if (lastFocus && lastFocus.focus) lastFocus.focus();
+}
+document.addEventListener('keydown', e => {
+  const m = document.querySelector('.modal-backdrop.active');
+  if (!m) return;
+  if (e.key === 'Escape') return closeM(m);
+  if (e.key === 'Tab') {
+    const f = [...m.querySelectorAll('input,textarea,button')], a = f[0], z = f[f.length - 1];
+    if (e.shiftKey && document.activeElement === a) { e.preventDefault(); z.focus(); }
+    else if (!e.shiftKey && document.activeElement === z) { e.preventDefault(); a.focus(); }
+  }
+});
+document.querySelectorAll('.modal-backdrop').forEach(m => m.addEventListener('click', e => { if (e.target === m) closeM(m); }));
+
+// ===== API 키 =====
+const keyModal = $('key-modal'), setModal = $('set-modal');
+$('key-btn').onclick = () => { $('api-key-input').value = apiKey; $('key-err').textContent = ''; openM(keyModal, $('api-key-input')); };
+$('close-key').onclick = () => closeM(keyModal);
+$('save-key').onclick = () => {
+  const v = $('api-key-input').value.trim();
+  if (!/^gsk_\S{10,}$/.test(v)) { $('key-err').textContent = 'Groq 키는 gsk_ 로 시작합니다. 다시 확인해 주세요.'; return; }
+  apiKey = v; store.set('groq_api_key', v);
+  updateStatus(); closeM(keyModal);
+  if (!messages.length) renderAll();
+  loadModels();
+};
+
+// ===== 설정 =====
+$('temp-input').oninput = e => ($('temp-val').textContent = e.target.value);
+$('settings-btn').onclick = () => {
+  $('temp-input').value = settings.temp; $('temp-val').textContent = settings.temp;
+  $('max-input').value = settings.max; $('extra-input').value = settings.extra;
+  openM(setModal);
+};
+$('close-set').onclick = () => closeM(setModal);
+$('save-set').onclick = () => {
+  settings.temp = Math.min(1.5, Math.max(0, parseFloat($('temp-input').value) || 0.7));
+  settings.max = Math.min(32768, Math.max(256, parseInt($('max-input').value) || 4096));
+  settings.extra = $('extra-input').value.trim();
+  store.set('jarvis_settings', JSON.stringify(settings));
+  closeM(setModal);
+};
+
+// ===== 테마 / 내보내기 / 초기화 =====
+const applyTheme = t => { document.documentElement.dataset.theme = t; document.querySelector('meta[name=theme-color]')?.setAttribute('content', t === 'light' ? '#fafafa' : '#09090b'); };
+applyTheme(store.get('jarvis_theme', 'dark'));
+$('theme-btn').onclick = () => {
+  const t = document.documentElement.dataset.theme === 'light' ? 'dark' : 'light';
+  applyTheme(t); store.set('jarvis_theme', t);
+};
+$('export-btn').onclick = () => {
+  if (!messages.length) return;
+  const text = messages.map(m => `## ${m.role === 'user' ? 'You' : 'Jarvis'}\n\n${m.content}`).join('\n\n---\n\n');
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([text], { type: 'text/markdown' }));
+  a.download = 'jarvis-chat.md';
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+};
+$('clear-btn').onclick = () => {
+  if (messages.length && !confirm('대화 기록을 모두 지울까요?')) return;
+  gen++;
+  if (controller) { try { controller.abort(); } catch {} }
+  messages = []; save(); setStreaming(false); renderAll();
+};
+
+// ===== 모델 목록 (키가 있으면 Groq에서 동적으로 갱신) =====
+modelSelect.value = store.get('jarvis_model', modelSelect.value) || modelSelect.value;
+modelSelect.onchange = () => store.set('jarvis_model', modelSelect.value);
+async function loadModels() {
+  if (!apiKey) return;
+  try {
+    const r = await fetch('https://api.groq.com/openai/v1/models', { headers: { Authorization: 'Bearer ' + apiKey } });
+    if (!r.ok) return;
+    const ids = (await r.json()).data.map(m => m.id).filter(id => !/whisper|guard|tts|playai|orpheus|compound/i.test(id)).sort();
+    if (!ids.length) return;
+    const cur = modelSelect.value;
+    modelSelect.innerHTML = '';
+    ids.forEach(id => { const o = document.createElement('option'); o.value = id; o.textContent = id.split('/').pop(); modelSelect.appendChild(o); });
+    modelSelect.value = ids.includes(cur) ? cur : ids[0];
+  } catch {}
+}
+
+// ===== 입력 =====
+userInput.addEventListener('input', function () {
+  this.style.height = 'auto';
+  this.style.height = Math.min(this.scrollHeight, 150) + 'px';
+});
+userInput.addEventListener('keydown', e => {
+  if (e.key === 'Enter' && !e.shiftKey && !e.isComposing && e.keyCode !== 229) { e.preventDefault(); sendMessage(); }
+});
+sendBtn.onclick = () => { if (streaming) controller && controller.abort(); else sendMessage(); };
+
+async function sendMessage() {
+  const text = userInput.value.trim();
+  if ((!text && !pending.length) || streaming) return;
+  if (!apiKey) { $('key-btn').click(); return; }
+  stopListen();
+  const images = pending.splice(0);
+  renderAttach();
+  if (images.length) ensureVision();
+  const content = text || '이 이미지를 설명해줘.';
+  messages.push({ role: 'user', content, ...(images.length ? { images } : {}) });
+  trimHistory(); save();
+  addMsg('user', content, false, undefined, images);
+  userInput.value = ''; userInput.style.height = 'auto';
+  await callAI();
+}
+
+function regenerate() {
+  if (streaming) return;
+  if (messages.length && messages[messages.length - 1].role === 'assistant') messages.pop();
+  const last = chatBox.lastElementChild;
+  if (last && last.classList.contains('ai')) last.remove();
+  save();
+  callAI();
+}
+
+function sysPrompt(label) {
+  return '너는 songmaosoftware.LLC의 코딩 특화 AI 어시스턴트 "Jarvis"야. 지금 답변을 생성하는 실제 기반 모델은 ' + label +
+    '이고, 기반 모델을 물으면 솔직하게 그렇게 말해. 코드 작성, 디버깅, 리팩토링, 기술 설명을 잘하고 한국어로 핵심만 깔끔하게 답해. ' +
+    '코드는 항상 언어명을 붙인 마크다운 코드 블록으로 보여주고, 모르는 건 모른다고 솔직하게 말해.' +
+    (settings.extra ? '\n' + settings.extra : '');
+}
+
+// ===== AI 호출 =====
+async function callAI() {
+  if (streaming || !messages.length || messages[messages.length - 1].role !== 'user') return;
+  const myGen = gen, model = modelSelect.value, label = modelLabel();
+  setStreaming(true);
+  const { w, b } = addMsg('ai', '', true, label);
+  b.classList.add('streaming');
+  let full = '', raf = 0, stick = true, sources = [], ctx = '';
+  const ctrl = new AbortController();
+  controller = ctrl;
+  const render = () => { raf = 0; b.innerHTML = md(full); if (stick) chatBox.scrollTop = chatBox.scrollHeight; };
+
+  try {
+    if (BR.on) {
+      b.innerHTML = '<div class="typing-dots bw"><span></span><span></span><span></span><em class="bstat">웹에서 정보를 찾는 중…</em></div>';
+      const r = await browse(messages[messages.length - 1].content, ctrl.signal, t => { const e = b.querySelector('.bstat'); if (e) e.textContent = t; });
+      sources = r.sources; ctx = r.ctx;
+      b.innerHTML = '<div class="typing-dots"><span></span><span></span><span></span></div>';
+    }
+    const body = {
+      model, stream: true, temperature: settings.temp, max_tokens: settings.max,
+      messages: [{ role: 'system', content: sysPrompt(label) + ctx }, ...toApi()]
+    };
+    if (model.startsWith('qwen/')) body.reasoning_format = 'hidden';
+    if (model.startsWith('openai/gpt-oss')) body.include_reasoning = false;
+
+    const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+      method: 'POST',
+      headers: { Authorization: 'Bearer ' + apiKey, 'Content-Type': 'application/json' },
+      body: JSON.stringify(body), signal: ctrl.signal
+    });
+    if (!res.ok) {
+      let msg = 'API 오류 (' + res.status + ')';
+      try { msg = (await res.json()).error?.message || msg; } catch {}
+      if (res.status === 429) { const ra = res.headers.get('retry-after'); msg = '요청 한도에 도달했습니다. ' + (ra ? ra + '초 후' : '잠시 후') + ' 다시 시도하세요.'; }
+      if (res.status === 401) msg = 'API 키가 올바르지 않습니다. 🔑 버튼에서 다시 설정하세요.';
+      throw new Error(msg);
+    }
+
+    const reader = res.body.getReader(), dec = new TextDecoder('utf-8');
+    let buf = '';
+    const handle = line => {
+      if (!line.startsWith('data:')) return;
+      const p = line.slice(5).trim();
+      if (!p || p === '[DONE]') return;
+      try {
+        const d = JSON.parse(p).choices?.[0]?.delta?.content || '';
+        if (d) { if (!full) stick = true; else stick = nearBottom(); full += d; if (!raf) raf = requestAnimationFrame(render); }
+      } catch {}
+    };
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buf += dec.decode(value, { stream: true });
+      const lines = buf.split('\n');
+      buf = lines.pop();
+      lines.forEach(handle);
+    }
+    if (buf) handle(buf);
+  } catch (e) {
+    if (raf) cancelAnimationFrame(raf);
+    if (myGen !== gen) return;                         // 대화 초기화로 중단됨
+    if (e.name === 'AbortError') {                     // 사용자가 중지: 지금까지의 답변 유지
+      if (!full.trim()) { w.remove(); return; }
+    } else {
+      w.classList.add('err');
+      b.innerHTML = '⚠️ ' + esc(e.message || '알 수 없는 오류');
+      const rb = document.createElement('button');
+      rb.type = 'button'; rb.className = 'retry-btn'; rb.textContent = '다시 시도';
+      rb.onclick = () => { w.remove(); callAI(); };
+      b.appendChild(rb);
+      say('오류가 발생했습니다.');
+      return;
+    }
+  } finally {
+    b.classList.remove('streaming');
+    if (myGen === gen) { setStreaming(false); controller = null; }
+  }
+
+  if (myGen !== gen) return;
+  if (raf) cancelAnimationFrame(raf);
+  full = full.replace(/<think>[\s\S]*?<\/think>/g, '').trim();
+  if (!full) { w.remove(); return; }
+  b.innerHTML = md(full); finish(b); showSources(w, sources);
+  w._raw = full; w.classList.add('done');
+  messages.push({ role: 'assistant', content: full, model: label, ...(sources.length ? { sources } : {}) });
+  trimHistory(); save();
+  if (stick) chatBox.scrollTop = chatBox.scrollHeight;
+  say('답변이 완료되었습니다.');
+}
+
+// ===== v2: 아이콘 / 토스트 / 이미지 / 음성 / 연동 / PWA =====
+const ICONS = {
+  globe: '<circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15 15 0 0 1 0 20M12 2a15 15 0 0 0 0 20"/>',
+  mic: '<path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2M12 19v4M8 23h8"/>',
+  image: '<rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/>',
+  sliders: '<path d="M4 6h8M18 6h2M4 12h2M12 12h8M4 18h10M20 18h0"/><circle cx="15" cy="6" r="2"/><circle cx="9" cy="12" r="2"/><circle cx="17" cy="18" r="2"/>',
+  key: '<circle cx="8" cy="15" r="4"/><path d="M11 12l9-9M16 7l3 3"/>',
+  link: '<path d="M10 13a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1 1M14 11a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l1-1"/>',
+  mail: '<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/>',
+  share: '<circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.6 13.5l6.8 4M15.4 6.5l-6.8 4"/>',
+  speaker: '<path d="M11 5L6 9H2v6h4l5 4zM15.5 8.5a5 5 0 0 1 0 7"/>'
+};
+const ic = (n, sz = 18) => '<svg width="' + sz + '" height="' + sz + '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + ICONS[n] + '</svg>';
+function toast(t) {
+  const d = document.createElement('div');
+  d.className = 'toast'; d.textContent = t; d.setAttribute('role', 'status');
+  document.body.appendChild(d);
+  setTimeout(() => d.classList.add('out'), 2400);
+  setTimeout(() => d.remove(), 2800);
+}
+['theme-btn', 'export-btn', 'clear-btn'].forEach(id => $(id).addEventListener('click', () => closeM(setModal)));
+
+// --- 이미지 입력 ---
+const pending = [];
+function renderAttach() {
+  const st = $('attach-strip');
+  st.innerHTML = '';
+  pending.forEach((u, i) => {
+    const d = document.createElement('div'); d.className = 'att';
+    const im = document.createElement('img'); im.alt = '첨부'; im.src = u;
+    const x = document.createElement('button'); x.type = 'button'; x.textContent = '×'; x.setAttribute('aria-label', '첨부 삭제');
+    x.onclick = () => { pending.splice(i, 1); renderAttach(); };
+    d.append(im, x); st.appendChild(d);
+  });
+  st.classList.toggle('on', pending.length > 0);
+}
+function resizeImg(file) {
+  return new Promise((res, rej) => {
+    const u = URL.createObjectURL(file), im = new Image();
+    im.onload = () => {
+      const k = Math.min(1, 1280 / Math.max(im.width, im.height)), c = document.createElement('canvas');
+      c.width = Math.round(im.width * k); c.height = Math.round(im.height * k);
+      c.getContext('2d').drawImage(im, 0, 0, c.width, c.height);
+      URL.revokeObjectURL(u); res(c.toDataURL('image/jpeg', .85));
+    };
+    im.onerror = () => { URL.revokeObjectURL(u); rej(); };
+    im.src = u;
+  });
+}
+async function addFiles(files) {
+  for (const f of files) {
+    if (!f.type.startsWith('image/')) continue;
+    if (pending.length >= 4) { toast('이미지는 최대 4장까지 첨부할 수 있어요.'); break; }
+    try { pending.push(await resizeImg(f)); } catch { toast('이미지를 읽을 수 없습니다.'); }
+  }
+  renderAttach();
+}
+const VISION = /llama-4|scout|maverick|vision/i;
+function ensureVision() {
+  if (VISION.test(modelSelect.value)) return;
+  let o = [...modelSelect.options].find(x => VISION.test(x.value));
+  if (!o) { o = document.createElement('option'); o.value = 'meta-llama/llama-4-scout-17b-16e-instruct'; o.textContent = 'llama-4-scout-17b-16e-instruct'; modelSelect.appendChild(o); }
+  modelSelect.value = o.value; store.set('jarvis_model', o.value);
+  toast('이미지 분석을 위해 비전 모델로 전환했어요.');
+}
+function toApi() {
+  return messages.map(({ role, content, images }, i) => (images && i === messages.length - 1)
+    ? { role, content: [{ type: 'text', text: content }, ...images.map(u => ({ type: 'image_url', image_url: { url: u } }))] }
+    : { role, content });
+}
+$('attach-btn').onclick = () => $('file-input').click();
+$('file-input').onchange = e => { addFiles(e.target.files); e.target.value = ''; };
+userInput.addEventListener('paste', e => {
+  const f = [...(e.clipboardData?.files || [])].filter(x => x.type.startsWith('image/'));
+  if (f.length) { e.preventDefault(); addFiles(f); }
+});
+const appEl = document.querySelector('.app-container');
+let dragN = 0;
+appEl.addEventListener('dragenter', e => { if ([...(e.dataTransfer?.types || [])].includes('Files')) { dragN++; appEl.classList.add('drag'); } });
+appEl.addEventListener('dragleave', () => { if (--dragN <= 0) { dragN = 0; appEl.classList.remove('drag'); } });
+appEl.addEventListener('dragover', e => e.preventDefault());
+appEl.addEventListener('drop', e => { e.preventDefault(); dragN = 0; appEl.classList.remove('drag'); addFiles(e.dataTransfer.files); });
+
+// --- 음성 입력 / 읽어주기 ---
+const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+let rec = null, listening = false, baseText = '';
+function stopListen() { if (rec && listening) { try { rec.stop(); } catch {} } }
+$('mic-btn').onclick = () => {
+  if (!SR) { toast('이 브라우저는 음성 입력을 지원하지 않아요. (Chrome·Safari 권장)'); return; }
+  if (listening) { stopListen(); return; }
+  rec = new SR(); rec.lang = 'ko-KR'; rec.interimResults = true; rec.continuous = true;
+  baseText = userInput.value;
+  rec.onstart = () => { listening = true; $('mic-btn').classList.add('live'); };
+  rec.onresult = e => {
+    let t = '';
+    for (let i = 0; i < e.results.length; i++) t += e.results[i][0].transcript;
+    userInput.value = (baseText ? baseText + ' ' : '') + t;
+    userInput.dispatchEvent(new Event('input'));
+  };
+  rec.onerror = e => { if (e.error === 'not-allowed') toast('마이크 권한을 허용해 주세요.'); };
+  rec.onend = () => { listening = false; $('mic-btn').classList.remove('live'); };
+  rec.start();
+};
+function speak(text) {
+  if (!('speechSynthesis' in window)) { toast('읽어주기를 지원하지 않는 브라우저입니다.'); return; }
+  if (speechSynthesis.speaking) { speechSynthesis.cancel(); return; }
+  const u = new SpeechSynthesisUtterance(text.replace(/```[\s\S]*?```/g, ' 코드 블록 생략. ').replace(/[#*_`>]/g, ''));
+  u.lang = 'ko-KR'; speechSynthesis.speak(u);
+}
+
+// --- 연동: 공유 / Gmail ---
+function shareText(text) {
+  if (navigator.share) navigator.share({ title: 'Jarvis', text }).catch(() => {});
+  else navigator.clipboard?.writeText(text).then(() => toast('공유를 지원하지 않아 클립보드에 복사했어요.'));
+}
+let gTok = null, gExp = 0;
+const gOn = () => gTok && Date.now() < gExp;
+function loadGsi() {
+  return new Promise((res, rej) => {
+    if (window.google?.accounts?.oauth2) return res();
+    const sc = document.createElement('script');
+    sc.src = 'https://accounts.google.com/gsi/client';
+    sc.onload = res; sc.onerror = () => rej(new Error('Google 스크립트를 불러오지 못했습니다.'));
+    document.head.appendChild(sc);
+  });
+}
+async function gAuth() {
+  if (gOn()) return gTok;
+  const cid = store.get('jarvis_gcid', '');
+  if (!cid) throw new Error('Client ID를 먼저 입력하세요.');
+  await loadGsi();
+  return new Promise((res, rej) => {
+    google.accounts.oauth2.initTokenClient({
+      client_id: cid,
+      scope: 'https://www.googleapis.com/auth/gmail.readonly https://www.googleapis.com/auth/gmail.compose',
+      callback: r => { if (r.error) return rej(new Error(r.error_description || r.error)); gTok = r.access_token; gExp = Date.now() + (r.expires_in - 60) * 1000; res(gTok); },
+      error_callback: e => rej(new Error(e.type === 'popup_closed' ? '로그인 창이 닫혔습니다.' : (e.type || '연결 실패')))
+    }).requestAccessToken();
+  });
+}
+async function gFetch(path, opt = {}) {
+  const t = await gAuth();
+  const r = await fetch('https://gmail.googleapis.com/gmail/v1/users/me/' + path, { ...opt, headers: { Authorization: 'Bearer ' + t, 'Content-Type': 'application/json' } });
+  if (!r.ok) throw new Error('Gmail 오류 (' + r.status + ')');
+  return r.json();
+}
+async function fetchMails() {
+  const l = await gFetch('messages?maxResults=5&labelIds=INBOX'), out = [];
+  for (const m of l.messages || []) {
+    const d = await gFetch('messages/' + m.id + '?format=metadata&metadataHeaders=From&metadataHeaders=Subject');
+    const h = n => d.payload.headers.find(x => x.name === n)?.value || '';
+    out.push('- 보낸 사람: ' + h('From') + ' / 제목: ' + h('Subject') + ' / 요약: ' + d.snippet);
+  }
+  return out.join('\n') || '(메일이 없습니다)';
+}
+const b64 = t => btoa(unescape(encodeURIComponent(t)));
+async function saveDraft(text) {
+  const raw = b64('Subject: =?UTF-8?B?' + b64('Jarvis 답변') + '?=\r\nMIME-Version: 1.0\r\nContent-Type: text/plain; charset=UTF-8\r\nContent-Transfer-Encoding: 8bit\r\n\r\n' + text).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+  await gFetch('drafts', { method: 'POST', body: JSON.stringify({ message: { raw } }) });
+}
+async function toGmail(text) {
+  if (gOn()) { try { await saveDraft(text); toast('Gmail 임시보관함에 저장했어요.'); return; } catch (e) { toast(e.message); } }
+  window.open('https://mail.google.com/mail/?view=cm&fs=1&su=' + encodeURIComponent('Jarvis 답변') + '&body=' + encodeURIComponent(text.slice(0, 1500)), '_blank', 'noopener');
+}
+const gStat = () => { $('g-status').textContent = gOn() ? '연결됨 ✓' : '연결 안 됨'; };
+$('integ-btn').onclick = () => { $('gcid').value = store.get('jarvis_gcid', ''); gStat(); openM($('integ-modal'), $('gcid')); if ($('gcid').value) loadGsi().catch(() => {}); };
+$('close-integ').onclick = () => closeM($('integ-modal'));
+$('gcid').onchange = () => store.set('jarvis_gcid', $('gcid').value.trim());
+$('g-connect').onclick = async () => { store.set('jarvis_gcid', $('gcid').value.trim()); try { await gAuth(); gStat(); toast('Gmail에 연결했어요.'); } catch (e) { toast(e.message || '연결 실패'); } };
+$('g-off').onclick = () => { if (gTok && window.google?.accounts?.oauth2) google.accounts.oauth2.revoke(gTok); gTok = null; gStat(); };
+$('g-mails').onclick = async () => {
+  try {
+    const t = await fetchMails(); gStat();
+    userInput.value = '아래는 내 받은편지함 최근 메일이야. 요약하고, 답장이 필요한 메일과 답장 초안을 알려줘.\n\n' + t;
+    userInput.dispatchEvent(new Event('input'));
+    closeM($('integ-modal')); toast('메일을 입력창에 넣었어요. 확인 후 전송하세요.');
+  } catch (e) { toast(e.message); }
+};
+
+// --- PWA ---
+let installEv = null;
+addEventListener('beforeinstallprompt', e => { e.preventDefault(); installEv = e; $('install-btn').hidden = false; });
+$('install-btn').onclick = async () => { if (!installEv) return; installEv.prompt(); await installEv.userChoice; installEv = null; $('install-btn').hidden = true; };
+if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) navigator.serviceWorker.register('sw.js').catch(() => {});
+
+// ===== v3: 웹 브라우징 =====
+const BR = { on: store.get('jarvis_browse', '0') === '1' };
+const syncWeb = () => { $('web-btn').classList.toggle('on', BR.on); $('web-btn').setAttribute('aria-pressed', String(BR.on)); };
+$('web-btn').onclick = () => {
+  BR.on = !BR.on; store.set('jarvis_browse', BR.on ? '1' : '0'); syncWeb();
+  toast(BR.on ? '웹 브라우징 켜짐 — 위키·뉴스·개발 사이트를 함께 찾아요.' : '웹 브라우징 꺼짐');
+};
+syncWeb();
+
+const NO_FETCH = /(^|\.)(x|twitter|instagram|facebook|threads)\.(com|net)$/;   // 로그인 장벽 사이트는 탐색하지 않음
+const dec = t => { const x = document.createElement('textarea'); x.innerHTML = t; return x.value; };
+const strip = t => dec(String(t || '').replace(/<[^>]+>/g, ' ')).replace(/\s+/g, ' ').trim();
+function fj(url, sig, text, ms = 8000) {
+  const c = new AbortController(), t = setTimeout(() => c.abort(), ms);
+  sig?.addEventListener('abort', () => c.abort(), { once: true });
+  return fetch(url, { signal: c.signal }).then(r => { if (!r.ok) throw new Error(r.status); return text ? r.text() : r.json(); }).finally(() => clearTimeout(t));
+}
+const wiki = (lang, q, s) => fj('https://' + lang + '.wikipedia.org/w/api.php?action=query&format=json&origin=*&generator=search&gsrlimit=2&exlimit=2&prop=extracts|info&exintro=1&explaintext=1&exchars=700&inprop=url&gsrsearch=' + encodeURIComponent(q), s)
+  .then(d => Object.values(d.query?.pages || {}).sort((a, b) => a.index - b.index).map(p => ({ site: lang + '.wikipedia.org', title: p.title, url: p.fullurl, text: p.extract })));
+const gnews = (q, s, o) => fj('https://api.rss2json.com/v1/api.json?rss_url=' + encodeURIComponent('https://news.google.com/rss/search?q=' + encodeURIComponent(q + (o.site ? ' site:' + o.site : '')) + o.loc), s)
+  .then(d => (d.items || []).slice(0, 3).map(i => { const t = strip(i.title), k = t.lastIndexOf(' - '); return { site: o.label || (k > 0 ? t.slice(k + 3) : '뉴스'), title: k > 0 ? t.slice(0, k) : t, url: i.link, text: '' }; }));
+const hn = (q, s) => fj('https://hn.algolia.com/api/v1/search?tags=story&hitsPerPage=2&query=' + encodeURIComponent(q), s)
+  .then(d => d.hits.map(h => ({ site: 'news.ycombinator.com', title: h.title, url: h.url || 'https://news.ycombinator.com/item?id=' + h.objectID, text: h.points + ' points' })));
+const so = (q, s) => fj('https://api.stackexchange.com/2.3/search/advanced?order=desc&sort=relevance&pagesize=2&site=stackoverflow&q=' + encodeURIComponent(q), s)
+  .then(d => d.items.map(i => ({ site: 'stackoverflow.com', title: dec(i.title), url: i.link, text: (i.is_answered ? '답변 있음' : '미해결') + ', 점수 ' + i.score })));
+const gh = (q, s) => fj('https://api.github.com/search/repositories?per_page=2&q=' + encodeURIComponent(q), s)
+  .then(d => d.items.map(i => ({ site: 'github.com', title: i.full_name, url: i.html_url, text: i.description || '' })));
+// 나무위키·일반 URL: 읽기 전용 리더(r.jina.ai) 경유, 차단 페이지는 건너뜀
+const page = (url, s, site) => fj('https://r.jina.ai/' + url, s, true, 10000).then(t => {
+  if (t.length < 200 || /Just a moment|Attention Required|captcha/i.test(t.slice(0, 600))) return [];
+  const m = t.match(/^Title:\s*(.+)$/m);
+  return [{ site, title: m ? m[1].trim() : site, url, text: t.replace(/^[\s\S]*?Markdown Content:\s*/, '').slice(0, 900) }];
+});
+
+async function plan(text, sig) {
+  try {
+    const r = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+      method: 'POST', signal: sig,
+      headers: { Authorization: 'Bearer ' + apiKey, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ model: 'llama-3.1-8b-instant', temperature: 0, max_tokens: 150, response_format: { type: 'json_object' },
+        messages: [{ role: 'system', content: '사용자 메시지를 웹 검색용 키워드로 바꿔. JSON만 출력: {"search":검색이 필요하면 true(인사·잡담·단순 코드 작성은 false),"q":["한국어 키워드","English keywords"],"news":최신 소식·시사면 true,"dev":프로그래밍·기술이면 true}' }, { role: 'user', content: text }] })
+    });
+    const o = JSON.parse((await r.json()).choices[0].message.content);
+    if (o.search === false || (Array.isArray(o.q) && o.q.length)) return o;
+  } catch (e) { if (e.name === 'AbortError') throw e; }
+  return { search: true, q: [text.slice(0, 80)], news: true, dev: false };
+}
+
+async function browse(text, sig, upd) {
+  const p = await plan(text, sig);
+  if (p.search === false) return { sources: [], ctx: '' };
+  const q0 = String(p.q[0]), q1 = String(p.q[1] || p.q[0]);
+  const jobs = [wiki('ko', q0, sig), wiki('en', q1, sig), page('https://namu.wiki/w/' + encodeURIComponent(q0), sig, 'namu.wiki')];
+  if (p.news !== false) jobs.push(gnews(q0, sig, { loc: '&hl=ko&gl=KR&ceid=KR:ko' }), gnews(q1, sig, { site: 'bbc.com', label: 'bbc.com', loc: '&hl=en-US&gl=US&ceid=US:en' }));
+  if (p.dev) jobs.push(hn(q1, sig), so(q1, sig), gh(q1, sig));
+  (text.match(/https?:\/\/[^\s)]+/g) || []).slice(0, 2).forEach(u => {
+    let h = ''; try { h = new URL(u).hostname; } catch {}
+    if (!h) return;
+    if (NO_FETCH.test(h)) toast('X·인스타그램처럼 로그인이 필요한 사이트는 탐색하지 않아요.'); else jobs.push(page(u, sig, h));
+  });
+  let done = 0;
+  const res = await Promise.allSettled(jobs.map(j => j.finally(() => upd('웹에서 정보를 찾는 중… (' + (++done) + '/' + jobs.length + ')'))));
+  if (sig.aborted) throw new DOMException('aborted', 'AbortError');
+  const seen = new Set(), list = [];
+  res.forEach(r => (r.value || []).forEach(x => {
+    if (x.url && x.title && !seen.has(x.url) && list.length < 12) { seen.add(x.url); list.push({ n: list.length + 1, site: x.site, title: x.title, url: x.url, text: (x.text || '').slice(0, 600) }); }
+  }));
+  if (!list.length) return { sources: [], ctx: '' };
+  const ctx = '\n\n[웹 검색 결과 — ' + new Date().toLocaleDateString('ko-KR') + ' 기준]\n' + list.map(x => '[' + x.n + '] ' + x.title + ' (' + x.site + ')' + (x.text ? '\n' + x.text : '')).join('\n') +
+    '\n\n위 자료를 참고해 답하고, 근거로 쓴 문장 끝에 [번호]를 붙여. 자료에 없는 내용은 추측하지 말고, 질문과 무관한 자료는 무시해.';
+  return { sources: list.map(({ text, ...x }) => x), ctx };
+}
+
+function showSources(w, list) {
+  w.querySelector('.sources')?.remove();
+  if (!list || !list.length) return;
+  const d = document.createElement('div');
+  d.className = 'sources';
+  const l = document.createElement('span'); l.textContent = '출처'; d.appendChild(l);
+  list.forEach(x => {
+    if (!/^https?:\/\//.test(x.url)) return;
+    const a = document.createElement('a');
+    a.className = 'src'; a.href = x.url; a.target = '_blank'; a.rel = 'noopener noreferrer';
+    a.textContent = '[' + x.n + '] ' + x.site + ' · ' + x.title.slice(0, 28); a.title = x.title;
+    d.appendChild(a);
+  });
+  w.insertBefore(d, w.querySelector('.actions'));
+}
+
+// ===== 시작 =====
+document.querySelectorAll('[data-ic]').forEach(e => (e.innerHTML = ic(e.dataset.ic)));
+setStreaming(false);
+updateStatus();
+renderAll();
+loadModels();
+if (!apiKey) openM(keyModal, $('api-key-input'));
+</script>
+</body>
+</html>
